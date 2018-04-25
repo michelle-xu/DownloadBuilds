@@ -9,7 +9,7 @@ import datetime,sys
 import threading
 import traceback
 
-def downloader(url, username='test', password='test', num_thread = 20):
+def downloader(url, username='raymond', password='Blue123!', num_thread = 20):
     try:
         # create password manager
         password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
