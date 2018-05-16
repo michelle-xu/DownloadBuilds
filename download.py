@@ -1,6 +1,7 @@
 # Created by Michelle xu at 2018-04-18
 # This function is used to download builds with multiple threads.
 
+
 from __future__ import division
 from optparse import OptionParser
 from bs4 import BeautifulSoup
@@ -37,16 +38,19 @@ def downloader(url, username='test', password='test', num_thread = 20):
         builds_href.pop(0)
         # builds is used to store build version
         builds = []
-        # get all href that end with character '/'
-        for build in builds_href:
-            digital_build = build.string.strip('/')
-            # check the build number is all digital, then add to builds
-            if digital_build.isdigit():
-                version = int(digital_build)
-                builds.append(version)
-        # Compare and get latest build
-        latest_build = max(builds)
-        url = url + str(latest_build) + '/'
+        # Update 2018-05-16 check url is file path or directory path
+        # Update 2018-05-16 get length of builds_href, if it is empty, it is file path; otherwise, it is folder path
+        if len(builds_href):
+            # get all href that end with character '/'
+            for build in builds_href:
+                digital_build = build.string.strip('/')
+                # check the build number is all digital, then add to builds
+                if digital_build.isdigit():
+                    version = int(digital_build)
+                    builds.append(version)
+            # Compare and get latest build
+            latest_build = max(builds)
+            url = url + str(latest_build) + '/'
 
         # get all files from latest build
         print ("Now latest build url is: %s" % url)
@@ -57,8 +61,11 @@ def downloader(url, username='test', password='test', num_thread = 20):
 
         # get all installers from latest build version, it supports to download for different products.
         installers = soup.select('a[href*="."]')
-        # remove href with 'parent directory' element, it is index 0
-        installers.pop(0)
+        # Update 2018 - 05 - 16 to check if the first index is parent directory
+        if 'Parent Directory'in installers[0]:
+            # remove href with 'parent directory' element, it is index 0
+            installers.pop(0)
+
         print "Installer count is: %s" % (len(installers))
         for installer in installers:
             downloadThread(installer, url, num_thread)
