@@ -10,7 +10,7 @@ import datetime,sys
 import threading
 import traceback
 
-def downloader(url, username='test', password='test', num_thread = 20):
+def downloader(url, username='raymond', password='Blue123!', num_thread = 20):
     try:
         # create password manager
         password_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
@@ -24,51 +24,59 @@ def downloader(url, username='test', password='test', num_thread = 20):
         #opener.open(bigurl)
         # install opener
         urllib2.install_opener(opener)
-        # build request
-        request = urllib2.Request(url)
-        # urllib2.urlopen to send request
-        page = urllib2.urlopen(request)
-        # get response data to get access RMS build location
-        data = page.read()
-        # get HTML element and get the latest build
-        soup = BeautifulSoup(data, 'html.parser')
 
-        # builds_href to get all builds
-        builds_href = soup.select('a[href*="/"]')
-        builds_href.pop(0)
-        # builds is used to store build version
-        builds = []
-        # Update 2018-05-16 check url is file path or directory path
-        # Update 2018-05-16 get length of builds_href, if it is empty, it is file path; otherwise, it is folder path
-        if len(builds_href):
-            # get all href that end with character '/'
-            for build in builds_href:
-                digital_build = build.string.strip('/')
-                # check the build number is all digital, then add to builds
-                if digital_build.isdigit():
-                    version = int(digital_build)
-                    builds.append(version)
-            # Compare and get latest build
-            latest_build = max(builds)
-            url = url + str(latest_build) + '/'
+        # Update on 2018/05/28 to support download a single file
+        # check input url is file or directory: if the last value is '/', it is a directory; else, it is a file
+        if url[-1] == '/':
+            # build request
+            request = urllib2.Request(url)
+            # urllib2.urlopen to send request
+            page = urllib2.urlopen(request)
+            # get response data to get access RMS build location
+            data = page.read()
+            # get HTML element and get the latest build
+            soup = BeautifulSoup(data, 'html.parser')
 
-        # get all files from latest build
-        print ("Now latest build url is: %s" % url)
-        request = urllib2.Request(url)
-        page = urllib2.urlopen(request)
-        data = page.read()
-        soup = BeautifulSoup(data, 'html.parser')
+            # builds_href to get all builds
+            builds_href = soup.select('a[href*="/"]')
+            builds_href.pop(0)
+            # builds is used to store build version
+            builds = []
+            # Update 2018-05-16 check url is file path or directory path
+            # Update 2018-05-16 get length of builds_href, if it is empty, it is file path; otherwise, it is folder path
+            if len(builds_href):
+                # get all href that end with character '/'
+                for build in builds_href:
+                    digital_build = build.string.strip('/')
+                    # check the build number is all digital, then add to builds
+                    if digital_build.isdigit():
+                        version = int(digital_build)
+                        builds.append(version)
+                # Compare and get latest build
+                latest_build = max(builds)
+                url = url + str(latest_build) + '/'
 
-        # get all installers from latest build version, it supports to download for different products.
-        installers = soup.select('a[href*="."]')
-        # Update 2018 - 05 - 16 to check if the first index is parent directory
-        if 'Parent Directory'in installers[0]:
-            # remove href with 'parent directory' element, it is index 0
-            installers.pop(0)
+            # get all files from latest build
+            print ("Now latest build url is: %s" % url)
+            request = urllib2.Request(url)
+            page = urllib2.urlopen(request)
+            data = page.read()
+            soup = BeautifulSoup(data, 'html.parser')
 
-        print "Installer count is: %s" % (len(installers))
-        for installer in installers:
-            downloadThread(installer, url, num_thread)
+            # get all installers from latest build version, it supports to download for different products.
+            installers = soup.select('a[href*="."]')
+            # Update 2018 - 05 - 16 to check if the first index is parent directory
+            if 'Parent Directory'in installers[0]:
+                # remove href with 'parent directory' element, it is index 0
+                installers.pop(0)
+
+            print "Installer count is: %s" % (len(installers))
+            for installer in installers:
+                downloadThread(installer, url, num_thread)
+        else:
+            # file name is get the last value of string split by '/'
+            file = url.split('/')[-1]
+            downloadThread(file, url, num_thread)
 
     except (Exception,urllib2.HTTPError) as e:
         print 'Exception:\t', str(e)
@@ -121,8 +129,14 @@ def mulithread(total_size, num_thread, filename, fileurl):
 # Access url then start to do download
 def downloadThread(file, url, num_thread):
     try:
-        filename = file.string
-        fileurl = url + filename
+        # check file type is string or <class 'bs4.element.Tag'>
+        if isinstance(file, str):
+            filename = file
+            fileurl = url
+        else:
+            filename = file.string
+            fileurl = url + filename
+
         print ("The fileurl is: %s" % (fileurl))
         request = urllib2.Request(fileurl)
         page = urllib2.urlopen(request)
